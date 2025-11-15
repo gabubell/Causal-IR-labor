@@ -136,7 +136,7 @@ if (PSM_MODE == "sem_psm") {
   )
   
   cat("  - Resumo do Pareamento Completo:\n")
-  print(summary(match_obj, un = FALSE))
+  summary(match_obj, un = FALSE)
   matched_cpfs <- match.data(match_obj)$cpf
   
 } else {

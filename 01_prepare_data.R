@@ -4,6 +4,7 @@
 
 # --- 0. Limpeza do Ambiente e Carregamento de Pacotes ---
 rm(list = ls()); gc()
+setwd('/Users/macbook/GitHub/Causal-IR-labor')
 source("00_config.R")
 library(dplyr)
 
@@ -276,7 +277,7 @@ raw_dt[, c("lag_sal_vinc", "lag_sal_tot") := NULL]
 
 vars_to_accumulate <- c("paid_ir", "started_job", "left_job", "asked_to_leave", "changed_job",
                         "cbo_change_in_company", "cbo_change_at_start", "retired_termination",
-                        "retired_without", 'permanent_exit', "cbo_to_2", "cbo_to_4", "cbot_not_3")
+                        "retired_without", 'permanent_exit', "cbo_to_2")
 
 for (col in vars_to_accumulate) {
   if (any(is.na(raw_dt[[col]]))) {
@@ -336,3 +337,4 @@ saveRDS(prepared_data_final, file = PREPARED_DATA_PATH)
 cat("Dados preparados salvos com sucesso em:", PREPARED_DATA_PATH, "\n")
 cat("Total de linhas:", nrow(prepared_data_final), "| Total de CPFs únicos:", uniqueN(prepared_data_final$cpf), "\n")
 gc()
+

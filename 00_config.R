@@ -5,34 +5,38 @@
 # --- 1. Definição de Caminhos do Ambiente do Servidor ---
 
 # Define o caminho para a sua biblioteca R customizada no servidor.
-library_path <- "/dados01/gbelle/R_lib"
+#library_path <- "/dados01/gbelle/R_lib"
 
 # Define o diretório de trabalho como a raiz do seu projeto no servidor.
-setwd("/dados01/gbelle/IR/")
+#setwd("/dados01/gbelle/IR/")
 
-# Para rodar usando dados do gdrive:
-# data/IR/v2/input/
+setwd('/Users/macbook/GitHub/Causal-IR-labor')
 
 # Mensagem de confirmação para garantir que os caminhos estão corretos
 cat("Ambiente do Servidor Configurado:\n")
 cat("  - Diretório de Trabalho:", getwd(), "\n")
-cat("  - Caminho da Biblioteca:", library_path, "\n")
 
 # --- 2. Carregamento de Pacotes Essenciais ---
-tryCatch({
-  library(data.table, lib.loc = library_path)
-  library(lubridate, lib.loc = library_path)
-  library(fixest, lib.loc = library_path)
-  library(MatchIt, lib.loc = library_path)
-  library(tidyr, lib.loc = library_path)
-  library(ggplot2, lib.loc = library_path)
-  cat("Todos os pacotes foram carregados com sucesso.\n")
-}, error = function(e) {
-  stop(paste("ERRO: Falha ao carregar um dos pacotes. Verifique se todos estão instalados em '", library_path, "'.\nErro original: ", e$message))
-})
+library(data.table)
+library(lubridate)
+library(fixest)
+library(MatchIt)
+library(tidyr)
+library(ggplot2)
+# tryCatch({
+#   library(data.table)
+#   library(lubridate)
+#   library(fixest)
+#   library(MatchIt)
+#   library(tidyr)
+#   library(ggplot2)
+#   cat("Todos os pacotes foram carregados com sucesso.\n")
+# }, error = function(e) {
+#   stop(paste("ERRO: Falha ao carregar um dos pacotes. Verifique se todos estão instalados em '", library_path, "'.\nErro original: ", e$message))
+# })
 
 # --- 3. Caminhos de Arquivos (Relativos ao Projeto) ---
-RAW_DATA_PATH <- "painel_enfermagem_sp.rds"
+RAW_DATA_PATH <- "data/painel_enfermagem.rds"
 
 MUNICIPIO_TO_FILTER <- '355030'
 
