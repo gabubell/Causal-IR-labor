@@ -36,7 +36,7 @@ library(ggplot2)
 # })
 
 # --- 3. Caminhos de Arquivos (Relativos ao Projeto) ---
-RAW_DATA_PATH <- "data/painel_enfermagem.rds"
+RAW_DATA_PATH <- "data/painel_enfermagem_br.rds"
 
 MUNICIPIO_TO_FILTER <- '355030'
 
@@ -56,47 +56,81 @@ FINAL_RESULTS_PATH <- file.path(OUTPUT_DIR, "04_final_results.rds")
 # Esta tabela define o teto de isenção para cada período.
 # É usada para criar a variável 'paid_ir'.
 HISTORICAL_IR_LIMITS_DT <- data.table(
-  year        = c(2014, 2015, 2015, 2016, 2017),
-  month_start = c(1,    1,    4,    1,    1),
-  month_end   = c(12,   3,    12,   12,   12),
+  year        = c(2011, 2011, 2012, 2013, 2014, 2015, 2015, 2016, 2017, 2018, 2019),
+  month_start = c(1, 4, 1, 1, 1, 1, 4, 1, 1, 1, 1),
+  month_end   = c(3, 12, 12, 12, 12, 3, 12, 12, 12, 12, 12),
   exemption_limit = c(
-    1787.77, # Vigente pela Lei 12.469/2011
-    1787.77, # Manteve o valor de 2014 até Março de 2015
-    1903.98, # Mudança pela Lei 13.149/2015 a partir de Abril
-    1903.98, # Congelamento da tabela em 2016
-    1903.98  # Congelamento da tabela em 2017
+    1499.15, # 2011 (Jan-Mar)
+    1566.61, # 2011 (Apr-Dec)
+    1637.11, # 2012
+    1710.78, # 2013
+    1787.77, # 2014
+    1787.77, # 2015 (Jan-Mar)
+    1903.98, # 2015 (Apr-Dec)
+    1903.98, # 2016
+    1903.98, # 2017
+    1903.98, # 2018
+    1903.98  # 2019
   )
 )
 
 # --- Tabela Histórica de Contribuição do INSS ---
 
 INSS_CONTRIBUTION_TABLE_DT <- rbindlist(list(
-  # Período 1: Jan/2014 a Fev/2015
+  # 2011 (Jan-Jul 14)
+  data.table(year = 2011, month_start = 1, month_end = 7, 
+             salary_floor = c(0, 1106.91, 1844.84), 
+             salary_ceiling = c(1106.90, 1844.83, 3689.66), 
+             rate = c(0.08, 0.09, 0.11)),
+  # 2011 (Jul 15-Dec)
+  data.table(year = 2011, month_start = 7, month_end = 12, 
+             salary_floor = c(0, 1107.53, 1845.88), 
+             salary_ceiling = c(1107.52, 1845.87, 3691.74), 
+             rate = c(0.08, 0.09, 0.11)),
+  # 2012
+  data.table(year = 2012, month_start = 1, month_end = 12, 
+             salary_floor = c(0, 1174.87, 1958.11), 
+             salary_ceiling = c(1174.86, 1958.10, 3916.20), 
+             rate = c(0.08, 0.09, 0.11)),
+  # 2013
+  data.table(year = 2013, month_start = 1, month_end = 12, 
+             salary_floor = c(0, 1247.71, 2079.51), 
+             salary_ceiling = c(1247.70, 2079.50, 4159.00), 
+             rate = c(0.08, 0.09, 0.11)),
+  # 2014
   data.table(year = 2014, month_start = 1, month_end = 12, 
              salary_floor = c(0, 1317.08, 2195.13), 
              salary_ceiling = c(1317.07, 2195.12, 4390.24), 
              rate = c(0.08, 0.09, 0.11)),
+  # 2015 (Jan-Feb)
   data.table(year = 2015, month_start = 1, month_end = 2, 
              salary_floor = c(0, 1317.08, 2195.13), 
              salary_ceiling = c(1317.07, 2195.12, 4390.24), 
              rate = c(0.08, 0.09, 0.11)),
-  
-  # Período 2: Mar/2015 a Dez/2015
+  # 2015 (Mar-Dec)
   data.table(year = 2015, month_start = 3, month_end = 12,
              salary_floor = c(0, 1399.13, 2331.89), 
              salary_ceiling = c(1399.12, 2331.88, 4663.75), 
              rate = c(0.08, 0.09, 0.11)),
-  
-  # Período 3: 2016
+  # 2016
   data.table(year = 2016, month_start = 1, month_end = 12,
              salary_floor = c(0, 1556.95, 2594.93), 
              salary_ceiling = c(1556.94, 2594.92, 5189.82), 
              rate = c(0.08, 0.09, 0.11)),
-  
-  # Período 4: 2017
+  # 2017
   data.table(year = 2017, month_start = 1, month_end = 12,
              salary_floor = c(0, 1659.39, 2765.67), 
              salary_ceiling = c(1659.38, 2765.66, 5531.31), 
+             rate = c(0.08, 0.09, 0.11)),
+  # 2018
+  data.table(year = 2018, month_start = 1, month_end = 12,
+             salary_floor = c(0, 1693.73, 2822.91), 
+             salary_ceiling = c(1693.72, 2822.90, 5645.80), 
+             rate = c(0.08, 0.09, 0.11)),
+  # 2019
+  data.table(year = 2019, month_start = 1, month_end = 12,
+             salary_floor = c(0, 1751.82, 2919.73), 
+             salary_ceiling = c(1751.81, 2919.72, 5839.45), 
              rate = c(0.08, 0.09, 0.11))
 ))
 

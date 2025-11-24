@@ -8,8 +8,8 @@ cd "/dados01/gbelle/IR" // Diretório de trabalho e saída dos CSVs
 local rais_data_dir "/dados01/RAIS" // Diretório base dos dados RAIS anuais
 
 // --- Parâmetros ---
-local all_years = "2014 2015 2016 2017" // Anos para processar e extrair dados
-local reference_year = "2015"         // Ano base para identificar os CPFs
+local all_years = "2011 2012 2012 2014 2015" // Anos para processar e extrair dados
+local reference_year = "2011"         // Ano base para identificar os CPFs
 local region_prefix = "sp"            // Prefixo para os arquivos de São Paulo
 
 // Variável CBO nos seus arquivos .dta (AJUSTE SE NECESSÁRIO)

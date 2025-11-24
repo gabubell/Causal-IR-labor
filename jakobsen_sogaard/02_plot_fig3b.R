@@ -38,16 +38,16 @@ dt_2016 <- december_salary_dt[year == 2016, .(cpf, income_2016 = salary_2016_pri
 pre_reform_dt <- merge(dt_2014, dt_2015, by = "cpf")
 non_payers_2014 <- ir_status_dt[year == 2014 & paid_ir_in_year == 0, .(cpf)]
 pre_reform_dt <- pre_reform_dt[cpf %in% non_payers_2014$cpf] # Filtro IR
-pre_reform_dt <- pre_reform_dt[initial_income_2014 > 0 & income_2015 > 0]
-pre_reform_dt[, delta_log_income := log(income_2015) - log(initial_income_2014)]
+pre_reform_dt <- pre_reform_dt[initial_income_2014 > 0]
+pre_reform_dt[, delta_log_income := log(income_2015 + 1) - log(initial_income_2014 + 1)]
 setnames(pre_reform_dt, "initial_income_2014", "initial_income")
 
 # --- Base Pós-Reforma (2015 -> 2016) ---
 post_reform_dt <- merge(dt_2015, dt_2016, by = "cpf")
 non_payers_2015 <- ir_status_dt[year == 2015 & paid_ir_in_year == 0, .(cpf)]
 post_reform_dt <- post_reform_dt[cpf %in% non_payers_2015$cpf] # Filtro IR
-post_reform_dt <- post_reform_dt[income_2015 > 0 & income_2016 > 0]
-post_reform_dt[, delta_log_income := log(income_2016) - log(income_2015)]
+post_reform_dt <- post_reform_dt[income_2015 > 0]
+post_reform_dt[, delta_log_income := log(income_2016 + 1) - log(income_2015 + 1)]
 setnames(post_reform_dt, "income_2015", "initial_income")
 
 # --- 2. Normalização via Regressão (Eq. 11) ---

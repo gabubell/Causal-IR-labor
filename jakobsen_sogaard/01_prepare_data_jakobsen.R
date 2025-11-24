@@ -76,15 +76,18 @@ raw_dt[, `:=` (
   data_desligamento_efetiva = as.Date(data_desligamento_efetiva)
 )]
 
-raw_dt[, horas_ajustadas := {
-  inicio_mes <- floor_date(data_referencia_mes, "month")
-  fim_mes <- ceiling_date(data_referencia_mes, "month") - days(1)
-  data_inicio_efetiva <- pmax(dtadmissao, inicio_mes, na.rm = TRUE)
-  data_fim_efetiva <- pmin(data_desligamento_efetiva, fim_mes, na.rm = TRUE)
-  dias_trabalhados_no_mes <- as.numeric(data_fim_efetiva - data_inicio_efetiva) + 1
-  proporcao_mes <- dias_trabalhados_no_mes / as.numeric(days_in_month(data_referencia_mes))
-  horascontr * proporcao_mes
-}, by = 1:nrow(raw_dt)]
+raw_dt[, `:=`(
+  inicio_mes = floor_date(data_referencia_mes, "month"),
+  fim_mes = ceiling_date(data_referencia_mes, "month") - days(1)
+)]
+raw_dt[, `:=`(
+  data_inicio_efetiva = pmax(dtadmissao, inicio_mes, na.rm = TRUE),
+  data_fim_efetiva = pmin(data_desligamento_efetiva, fim_mes, na.rm = TRUE)
+)]
+raw_dt[, dias_trabalhados_no_mes := as.numeric(data_fim_efetiva - data_inicio_efetiva) + 1]
+raw_dt[, proporcao_mes := dias_trabalhados_no_mes / as.numeric(days_in_month(data_referencia_mes))]
+raw_dt[, horas_ajustadas := horascontr * proporcao_mes]
+raw_dt[, c("inicio_mes", "fim_mes", "data_inicio_efetiva", "data_fim_efetiva", "dias_trabalhados_no_mes", "proporcao_mes") := NULL]
 cat("   - 'horas_ajustadas' criada.\n")
 
 

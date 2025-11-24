@@ -1,0 +1,382 @@
+
+  ___  ____  ____  ____  ____ (R)
+ /__    /   ____/   /   ____/
+___/   /   /___/   /   /___/   14.2   Copyright 1985-2015 StataCorp LLC
+  Statistics/Data Analysis            StataCorp
+                                      4905 Lakeway Drive
+     MP - Parallel Edition            College Station, Texas 77845 USA
+                                      800-STATA-PC        http://www.stata.com
+                                      979-696-4600        stata@stata.com
+                                      979-696-4601 (fax)
+
+Single-user 8-core Stata perpetual license:
+       Serial number:  10699393
+         Licensed to:  Stata For All
+                       GAPPE.org
+
+Notes:
+      1.  Stata is running in batch mode.
+      2.  Unicode is supported; see help unicode_advice.
+      3.  More than 2 billion observations are allowed; see help obs_advice.
+      4.  Maximum number of variables is set to 5000; see help set_maxvar.
+
+. do "enfermagem_sp_coleta.do" 
+
+. version 14.2
+
+. clear all
+
+. set more off
+
+. set maxvar 10000
+
+
+. 
+. // --- Diretórios ---
+. cd "/dados01/gbelle/IR" // Diretório de trabalho e saída dos CSVs
+/dados01/gbelle/IR
+
+. local rais_data_dir "/dados01/RAIS" // Diretório base dos dados RAIS anuais
+
+. 
+. // --- Parâmetros ---
+. local all_years = "2015 2016 2017 2018 2019" // Anos para processar e extrair
+>  dados
+
+. local reference_year = "2015"         // Ano base para identificar os CPFs
+
+. local region_prefix = "sp"            // Prefixo para os arquivos de São Paul
+> o
+
+. 
+. // Variável CBO nos seus arquivos .dta (AJUSTE SE NECESSÁRIO)
+. local cbo_varname = "ocup2002"
+
+. 
+. // --- ETAPA 1: Identificar CPFs de Referência (Enfermagem SP, Ativos em Dez/
+> 2015) ---
+. display "=== ETAPA 1: Identificando CPFs de Referencia (Enfermagem SP, Ativos
+>  em Dez/`reference_year') ==="
+=== ETAPA 1: Identificando CPFs de Referencia (Enfermagem SP, Ativos em Dez/201
+> 5) ===
+
+. 
+. local ref_dta_filename = "`region_prefix'`reference_year'.dta"
+
+. local ref_fullpath = "`rais_data_dir'/`reference_year'/`ref_dta_filename'"
+
+. 
+. capture confirm file "`ref_fullpath'"
+
+. if _rc != 0 {
+.     display as error "ERRO FATAL: Arquivo de referencia `ref_dta_filename' na
+> o encontrado em `ref_fullpath'."
+.     exit 601
+. }
+
+. 
+. preserve
+
+. use "`ref_fullpath'", clear
+
+. if _rc != 0 {
+.     display as error "ERRO FATAL: Falha ao carregar o arquivo de referencia `
+> ref_dta_filename'."
+.     restore
+.     exit _rc
+. }
+
+. 
+. // Verificar variáveis essenciais para a Etapa 1
+. foreach var of varlist cpf `cbo_varname' mesdeslig {
+  2.     capture confirm variable `var'
+  3.     if _rc != 0 {
+  4.         display as error "ERRO FATAL: Variavel '`var'' nao encontrada em `
+> ref_dta_filename'."
+  5.         restore
+  6.         exit 111
+  7.     }
+  8. }
+
+. 
+. // Filtrar pelos CBOs de Enfermagem
+. gen byte is_enfermagem_ref_year = 0
+
+. 
+. // Técnicos de Enfermagem
+. replace is_enfermagem_ref_year = 1 if inlist(`cbo_varname', ///
+>     "322205", "322210", "322215", "322220", "322225", "322245", "3222E1", "32
+> 22E3", "3222B3")
+(160,743 real changes made)
+
+. 
+. // Auxiliares de Enfermagem (adiciona à seleção anterior, se não já seleciona
+> do)
+. replace is_enfermagem_ref_year = 1 if inlist(`cbo_varname', ///
+>     "322230", "322235", "322240", "322250", "3222E2")
+(164,406 real changes made)
+
+. 
+. keep if is_enfermagem_ref_year == 1
+(20,279,185 observations deleted)
+
+. drop is_enfermagem_ref_year
+
+. 
+. // Filtrar por "empregado em dezembro de 2015"
+. // Assumindo 'mesdeslig' == 0 (numérico) significa ativo em 31/12.
+. // Se for string "00", use: keep if mesdeslig == "00"
+. // Se tiver 'vinculo_ativo_3112' (1 se ativo), use: keep if vinculo_ativo_311
+> 2 == 1
+. // **AJUSTE ESTA CONDIÇÃO CONFORME SEUS DADOS RAIS**
+. keep if mesdeslig == 0
+(66,672 observations deleted)
+
+. 
+. // Manter apenas CPFs únicos para a lista de referência
+. keep cpf
+
+. duplicates drop cpf, force
+
+Duplicates in terms of cpf
+
+(38,204 observations deleted)
+
+. 
+. local n_target_cpfs = _N
+
+. display "  `n_target_cpfs' CPFs unicos de referencia (Enfermagem SP, ativos D
+> ez/`reference_year') identificados."
+  220273 CPFs unicos de referencia (Enfermagem SP, ativos Dez/2015) identificad
+> os.
+
+. if `n_target_cpfs' == 0 {
+.     display as error "ERRO FATAL: Nenhum CPF de referencia encontrado com os 
+> criterios. Verifique os filtros da Etapa 1."
+.     restore
+.     exit 198
+. }
+
+. 
+. gen byte _is_target_cpf = 1
+
+. sort cpf
+
+. tempfile target_cpfs_dta
+
+. save "`target_cpfs_dta'", replace
+(note: file /dados01/temp/St34236.000003 not found)
+file /dados01/temp/St34236.000003 saved
+
+. display "  Arquivo temporario com CPFs de referencia (`target_cpfs_dta') prep
+> arado."
+  Arquivo temporario com CPFs de referencia (/dados01/temp/St34236.000003) prep
+> arado.
+
+. restore
+
+. 
+. // --- ETAPA 2: Coletando TODOS os Vínculos dos CPFs de Referência nos Anos S
+> elecionados ---
+. display "=== ETAPA 2: Coletando TODOS os vinculos dos CPFs de Referencia ==="
+=== ETAPA 2: Coletando TODOS os vinculos dos CPFs de Referencia ===
+
+. 
+. foreach year of local all_years {
+  2.     display "--- Processando Ano: `year' ---"
+  3.     local dta_filename = "`region_prefix'`year'.dta"
+  4.     local fullpath = "`rais_data_dir'/`year'/`dta_filename'"
+  5.     // Nome do CSV de saída mais descritivo para refletir o conteúdo
+.     local output_csv = "`region_prefix'_cpfs_ref_enf`reference_year`_todos_vi
+> nculos_`year'.csv"
+  6. 
+.     capture confirm file "`fullpath'"
+  7.     if _rc != 0 {
+  8.         display as error "    Aviso: Arquivo `dta_filename' nao encontrado
+>  em `fullpath'. Pulando ano `year'."
+  9.         continue
+ 10.     }
+ 11. 
+.     preserve
+ 12.     capture use "`fullpath'", clear
+ 13.     if _rc != 0 {
+ 14.          display as error "    Erro `_rc' ao carregar `dta_filename'. Pula
+> ndo ano `year'."
+ 15.          restore
+ 16.          continue
+ 17.     }
+ 18. 
+.     // Verificar variáveis essenciais para a Etapa 2 (cpf para merge, cbo_var
+> name para info)
+.     foreach var of varlist cpf `cbo_varname' {
+ 19.         capture confirm variable `var'
+ 20.         if _rc != 0 {
+ 21.             display as error "    Erro: Variavel '`var'' nao encontrada em
+>  `dta_filename'. Pulando ano `year'."
+ 22.             restore
+ 23.             continue 2
+ 24.         }
+ 25.     }
+ 26. 
+.     // Opcional: Criar variável para identificar se o CBO NO ANO CORRENTE é d
+> e enfermagem
+.     // Esta variável é apenas informativa, não será usada para filtrar aqui.
+.     gen str30 role_enfermagem_ano_corrente = ""
+ 27.     replace role_enfermagem_ano_corrente = "Técnico de Enfermagem" if inli
+> st(`cbo_varname', ///
+>         "322205", "322210", "322215", "322220", "322225", "322245", "3222E1",
+>  "3222E3", "3222B3")
+ 28.     replace role_enfermagem_ano_corrente = "Auxiliar de Enfermagem" if inl
+> ist(`cbo_varname', ///
+>         "322230", "322235", "322240", "322250", "3222E2")
+ 29. 
+.     // Faz merge com os CPFs de referência.
+.     // Manterá todos os vínculos (linhas) do arquivo do ano corrente (`master
+> `)
+.     // para os CPFs que estão na lista de `target_cpfs_dta`.
+.     sort cpf // Garante que o arquivo master (RAIS do ano) esteja ordenado po
+> r CPF
+ 30.     merge m:1 cpf using "`target_cpfs_dta'", keepusing(_is_target_cpf) nog
+> en update replace
+ 31.     
+.     keep if _is_target_cpf == 1 // Mantem todos os registros (vínculos) dos C
+> PFs da lista de referência
+ 32.     drop _is_target_cpf         // Remove a variável auxiliar do merge
+ 33. 
+.     local rows_found = _N
+ 34.     if `rows_found' > 0 {
+ 35.         display "    `rows_found' vinculos encontrados para os CPFs de ref
+> erencia. Exportando para `output_csv'..."
+ 36.         // Exporta os dados (todas as colunas originais + role_enfermagem_
+> ano_corrente)
+.         export delimited using "`output_csv'", replace nolabel
+ 37.         if _rc == 0 {
+ 38.              display "      Sucesso: `output_csv' salvo."
+ 39.         }
+ 40.         else {
+ 41.              display as error "      ERRO `_rc' ao salvar `output_csv'."
+ 42.         }
+ 43.     }
+ 44.     else {
+ 45.          display "    Nenhum vinculo encontrado para os CPFs de referencia
+>  em `dta_filename'."
+ 46.     }
+ 47.     restore
+ 48. } // fim loop year
+--- Processando Ano: 2015 ---
+(20,604,334 missing values generated)
+(160,743 real changes made)
+(164,406 real changes made)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                    20,294,256
+        from master                20,294,256  
+        from using                          0  
+
+    matched                           310,078
+        not updated                   310,078  
+        missing updated                     0  
+        nonmissing conflict                 0  
+    -----------------------------------------
+(20,294,256 observations deleted)
+    310078 vinculos encontrados para os CPFs de referencia. Exportando para sp_
+> cpfs_ref_enf`reference_year`_todos_vinculos_2015.csv...
+(note: file sp_cpfs_ref_enf`reference_year`_todos_vinculos_2015.csv not found)
+file sp_cpfs_ref_enf`reference_year`_todos_vinculos_2015.csv saved
+      Sucesso: sp_cpfs_ref_enf`reference_year`_todos_vinculos_2015.csv salvo.
+--- Processando Ano: 2016 ---
+(19,120,468 missing values generated)
+(164,275 real changes made)
+(152,514 real changes made)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                    18,825,997
+        from master                18,824,526  
+        from using                      1,471  
+
+    matched                           295,942
+        not updated                   295,942  
+        missing updated                     0  
+        nonmissing conflict                 0  
+    -----------------------------------------
+(18,824,526 observations deleted)
+    297413 vinculos encontrados para os CPFs de referencia. Exportando para sp_
+> cpfs_ref_enf`reference_year`_todos_vinculos_2016.csv...
+(note: file sp_cpfs_ref_enf`reference_year`_todos_vinculos_2016.csv not found)
+file sp_cpfs_ref_enf`reference_year`_todos_vinculos_2016.csv saved
+      Sucesso: sp_cpfs_ref_enf`reference_year`_todos_vinculos_2016.csv salvo.
+--- Processando Ano: 2017 ---
+(18,669,160 missing values generated)
+(172,330 real changes made)
+(144,522 real changes made)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                    18,404,371
+        from master                18,392,120  
+        from using                     12,251  
+
+    matched                           277,040
+        not updated                   277,040  
+        missing updated                     0  
+        nonmissing conflict                 0  
+    -----------------------------------------
+(18,392,120 observations deleted)
+    289291 vinculos encontrados para os CPFs de referencia. Exportando para sp_
+> cpfs_ref_enf`reference_year`_todos_vinculos_2017.csv...
+(note: file sp_cpfs_ref_enf`reference_year`_todos_vinculos_2017.csv not found)
+file sp_cpfs_ref_enf`reference_year`_todos_vinculos_2017.csv saved
+      Sucesso: sp_cpfs_ref_enf`reference_year`_todos_vinculos_2017.csv salvo.
+--- Processando Ano: 2018 ---
+(18,942,078 missing values generated)
+(185,239 real changes made)
+(141,092 real changes made)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                    18,691,863
+        from master                18,672,764  
+        from using                     19,099  
+
+    matched                           269,314
+        not updated                   269,314  
+        missing updated                     0  
+        nonmissing conflict                 0  
+    -----------------------------------------
+(18,672,764 observations deleted)
+    288413 vinculos encontrados para os CPFs de referencia. Exportando para sp_
+> cpfs_ref_enf`reference_year`_todos_vinculos_2018.csv...
+(note: file sp_cpfs_ref_enf`reference_year`_todos_vinculos_2018.csv not found)
+file sp_cpfs_ref_enf`reference_year`_todos_vinculos_2018.csv saved
+      Sucesso: sp_cpfs_ref_enf`reference_year`_todos_vinculos_2018.csv salvo.
+--- Processando Ano: 2019 ---
+(19,206,526 missing values generated)
+(198,677 real changes made)
+(138,158 real changes made)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                    18,973,621
+        from master                18,946,083  
+        from using                     27,538  
+
+    matched                           260,443
+        not updated                   260,443  
+        missing updated                     0  
+        nonmissing conflict                 0  
+    -----------------------------------------
+(18,946,083 observations deleted)
+    287981 vinculos encontrados para os CPFs de referencia. Exportando para sp_
+> cpfs_ref_enf`reference_year`_todos_vinculos_2019.csv...
+(note: file sp_cpfs_ref_enf`reference_year`_todos_vinculos_2019.csv not found)
+file sp_cpfs_ref_enf`reference_year`_todos_vinculos_2019.csv saved
+      Sucesso: sp_cpfs_ref_enf`reference_year`_todos_vinculos_2019.csv salvo.
+
+. 
+. display "=== Processamento Concluído ==="
+=== Processamento Concluído ===
+
+. 
+end of do-file
